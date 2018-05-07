@@ -2,11 +2,11 @@
 
 ## TP1
 
-Comparação de diferentes produtos exitentes para "medição" do QoS
+Apresentação de um artigo relacionado com QoS na rede
 
 ## TP2
 
-Já não me lembro xD
+Comparação de diferentes produtos exitentes para "medição" do QoS
 
 
 ## TP3
