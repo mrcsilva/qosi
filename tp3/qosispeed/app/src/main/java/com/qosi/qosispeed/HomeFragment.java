@@ -1,13 +1,17 @@
 package com.qosi.qosispeed;
 
+import android.content.res.ColorStateList;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
+import android.support.v4.app.FragmentManager;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.ProgressBar;
 import android.widget.Switch;
 import android.widget.TextView;
 
@@ -19,6 +23,7 @@ public class HomeFragment extends Fragment {
     private Button start;
     private boolean one;
     private String text = "";
+    private FragmentManager fm = null;
 
 
     public void setSettings(SettingsFragment sf) {
@@ -33,7 +38,7 @@ public class HomeFragment extends Fragment {
             Switch jitter = (Switch) settingsView.findViewById(R.id.jitter_switch);
             String options = "";
             if (band.isChecked()) {
-                System.out.println("Band!");
+                Log.i("mario", "Band!");
                 options += "- Bandwidth\n";
                 one = true;
             }
@@ -41,7 +46,7 @@ public class HomeFragment extends Fragment {
                 one = false;
             }
             if (ping.isChecked()) {
-                System.out.println("Delay!");
+                Log.i("mario", "Delay!");
                 options += "- Delay (Ping)\n";
                 one = true;
             }
@@ -49,7 +54,7 @@ public class HomeFragment extends Fragment {
                 one = false;
             }
             if (jitter.isChecked()) {
-                System.out.println("Jit!");
+                Log.i("mario", "Jit!");
                 options += "- Jitter\n";
                 one = true;
             }
@@ -58,15 +63,15 @@ public class HomeFragment extends Fragment {
             }
 
             if (!one) {
-                System.out.println("Defined!");
+                Log.i("mario", "Defined!");
                 text = "Go to Settings and choose what to test!";
             } else {
-                System.out.println("Changed!\n" + options);
+                Log.i("mario", "Changed!");
                 text = "Tests to perform:\n" + options;
             }
         }
         else if(!one){
-            System.out.println("Default!");
+            Log.i("mario", "Default!");
             tv.setText("Go to Settings and choose what to test!");
             start.setEnabled(false);
             start.setBackgroundColor(Color.parseColor("grey"));
@@ -79,6 +84,7 @@ public class HomeFragment extends Fragment {
     }
 
     private void startTest() {
+        getFragmentManager().beginTransaction().replace(R.id.content_frame, new ResultsFragment()).commit();
 
     }
 
@@ -88,6 +94,10 @@ public class HomeFragment extends Fragment {
         myView = inflater.inflate(R.layout.home_layout, container, false);
         tv = (TextView) myView.findViewById(R.id.enabledOptions);
         start = (Button) myView.findViewById(R.id.startButton);
+        ProgressBar p = myView.findViewById(R.id.wait_results);
+
+        p.setIndeterminateTintList(ColorStateList.valueOf(Color.parseColor("#3f51b5")));
+
 
         start.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
@@ -98,7 +108,7 @@ public class HomeFragment extends Fragment {
             }
         });
 
-        System.out.println("Passou aqui!");
+        Log.i("mario", "Passou aqui!");
         doOptions();
 
         return myView;

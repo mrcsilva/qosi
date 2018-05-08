@@ -1,7 +1,9 @@
 package com.qosi.qosispeed;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.support.design.widget.NavigationView;
+import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
 import android.support.v4.view.GravityCompat;
 import android.support.v4.widget.DrawerLayout;
@@ -17,6 +19,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
     private SettingsFragment sf = new SettingsFragment();
     private HomeFragment hf = new HomeFragment();
+    private FragmentManager fm;
 
 
     @Override
@@ -33,13 +36,16 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         drawer.addDrawerListener(toggle);
         toggle.syncState();
 
+
+
         NavigationView navigationView = (NavigationView) findViewById(R.id.nav_view_main);
         navigationView.setNavigationItemSelectedListener(this);
 
+        fm = getSupportFragmentManager();
+
         hf.setSettings(sf);
 
-        FragmentManager fm = getSupportFragmentManager();
-        fm.beginTransaction().replace(R.id.content_frame, hf).commit();
+        fm.beginTransaction().add(R.id.content_frame, hf).addToBackStack(null).commit();
 
 
     }
@@ -47,9 +53,14 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     @Override
     public void onBackPressed() {
         DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
+        Fragment recent = fm.findFragmentById(R.id.content_frame);
         if (drawer.isDrawerOpen(GravityCompat.START)) {
             drawer.closeDrawer(GravityCompat.START);
-        } else {
+        }
+        else if(recent != null && !(recent instanceof HomeFragment || recent instanceof SettingsFragment)) {
+            fm.beginTransaction().replace(R.id.content_frame, hf).commit();
+        }
+        else {
             super.onBackPressed();
         }
     }
@@ -73,6 +84,8 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             return true;
         }
         else if(id == R.id.nav_home) {
+            Intent myIntent = new Intent(getApplicationContext(), MainActivity.class);
+            startActivityForResult(myIntent, 0);
             return true;
         }
 

@@ -8,4 +8,8 @@
     <string name="action_settings">Settings</string>
     <string name="about_us">About QoSI Speedtest</string>
     <string name="home">Test</string>
+    <string name="dash">-</string>
+    <string name="delay">Delay</string>
+    <string name="jitter">Jitter</string>
+    <string name="bandwidth">Bandwidth</string>
 </resources>
