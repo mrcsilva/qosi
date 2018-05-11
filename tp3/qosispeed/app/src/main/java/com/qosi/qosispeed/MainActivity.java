@@ -7,6 +7,7 @@ import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
 import android.support.v4.view.GravityCompat;
 import android.support.v4.widget.DrawerLayout;
+import android.support.v7.app.ActionBar;
 import android.support.v7.app.ActionBarDrawerToggle;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
@@ -20,6 +21,8 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     private SettingsFragment sf = new SettingsFragment();
     private HomeFragment hf = new HomeFragment();
     private FragmentManager fm;
+    private ActionBar actionBar;
+    private ActionBarDrawerToggle actionBarToggle;
 
 
     @Override
@@ -36,6 +39,8 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         drawer.addDrawerListener(toggle);
         toggle.syncState();
 
+        actionBar = getSupportActionBar();
+        actionBarToggle = toggle;
 
 
         NavigationView navigationView = (NavigationView) findViewById(R.id.nav_view_main);
@@ -44,10 +49,17 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         fm = getSupportFragmentManager();
 
         hf.setSettings(sf);
+        hf.setActionBar(actionBar);
 
         fm.beginTransaction().add(R.id.content_frame, hf).addToBackStack(null).commit();
 
 
+    }
+
+    @Override
+    public boolean onSupportNavigateUp(){
+        finish();
+        return true;
     }
 
     @Override
@@ -59,6 +71,8 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         }
         else if(recent != null && !(recent instanceof HomeFragment || recent instanceof SettingsFragment)) {
             fm.beginTransaction().replace(R.id.content_frame, hf).commit();
+            getSupportActionBar().setDisplayHomeAsUpEnabled(false);
+            actionBarToggle.setDrawerIndicatorEnabled(true);
         }
         else {
             super.onBackPressed();
@@ -104,7 +118,6 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             setTitle(item.getTitle());
         }
         else if(id == R.id.nav_home) {
-            System.out.println("Carreguei no botao, entrou?");
             fm.beginTransaction().replace(R.id.content_frame, hf).commit();
             setTitle("QoSI Speedtest");
             hf.doOptions();

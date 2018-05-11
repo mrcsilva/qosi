@@ -6,7 +6,7 @@ import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
-import android.util.Log;
+import android.support.v7.app.ActionBar;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -24,10 +24,16 @@ public class HomeFragment extends Fragment {
     private boolean one;
     private String text = "";
     private FragmentManager fm = null;
+    private ProgressBar p;
+    private ActionBar actionBar = null;
 
 
     public void setSettings(SettingsFragment sf) {
         this.sf = sf;
+    }
+
+    public void setActionBar(ActionBar actionBar) {
+        this.actionBar = actionBar;
     }
 
     public void doOptions() {
@@ -38,7 +44,6 @@ public class HomeFragment extends Fragment {
             Switch jitter = (Switch) settingsView.findViewById(R.id.jitter_switch);
             String options = "";
             if (band.isChecked()) {
-                Log.i("mario", "Band!");
                 options += "- Bandwidth\n";
                 one = true;
             }
@@ -46,7 +51,6 @@ public class HomeFragment extends Fragment {
                 one = false;
             }
             if (ping.isChecked()) {
-                Log.i("mario", "Delay!");
                 options += "- Delay (Ping)\n";
                 one = true;
             }
@@ -54,7 +58,6 @@ public class HomeFragment extends Fragment {
                 one = false;
             }
             if (jitter.isChecked()) {
-                Log.i("mario", "Jit!");
                 options += "- Jitter\n";
                 one = true;
             }
@@ -63,15 +66,12 @@ public class HomeFragment extends Fragment {
             }
 
             if (!one) {
-                Log.i("mario", "Defined!");
                 text = "Go to Settings and choose what to test!";
             } else {
-                Log.i("mario", "Changed!");
                 text = "Tests to perform:\n" + options;
             }
         }
         else if(!one){
-            Log.i("mario", "Default!");
             tv.setText("Go to Settings and choose what to test!");
             start.setEnabled(false);
             start.setBackgroundColor(Color.parseColor("grey"));
@@ -83,9 +83,21 @@ public class HomeFragment extends Fragment {
         }
     }
 
-    private void startTest() {
-        getFragmentManager().beginTransaction().replace(R.id.content_frame, new ResultsFragment()).commit();
+    private void doPing() {
+        for(int i = 0; i < 1000000; i++);
+    }
 
+    private void startTest() {
+        p.setVisibility(View.VISIBLE);
+
+        doPing();
+
+        ResultsFragment results = new ResultsFragment();
+        String ping = "22 ms";
+        results.setResults(null, ping, null);
+        actionBar.setDisplayHomeAsUpEnabled(true);
+        getFragmentManager().beginTransaction().replace(R.id.content_frame, results).commit();
+        p.setVisibility(View.INVISIBLE);
     }
 
     @Nullable
@@ -94,21 +106,20 @@ public class HomeFragment extends Fragment {
         myView = inflater.inflate(R.layout.home_layout, container, false);
         tv = (TextView) myView.findViewById(R.id.enabledOptions);
         start = (Button) myView.findViewById(R.id.startButton);
-        ProgressBar p = myView.findViewById(R.id.wait_results);
+        p = (ProgressBar) myView.findViewById(R.id.wait_results);
 
         p.setIndeterminateTintList(ColorStateList.valueOf(Color.parseColor("#3f51b5")));
+        p.setVisibility(View.INVISIBLE);
 
 
         start.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
                 if(v == myView.findViewById(R.id.startButton)) {
                     startTest();
-                    tv.append("Ola");
                 }
             }
         });
 
-        Log.i("mario", "Passou aqui!");
         doOptions();
 
         return myView;
