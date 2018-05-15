@@ -17,15 +17,18 @@ public class ResultsFragment extends Fragment {
     private String delay = "";
     private String jitter = "";
 
-    public void setResults(String bandwidth, String delay, String jitter) {
-        if(bandwidth != null) {
-            this.bandwidth = bandwidth;
+    public void setResults(String bandwidth, boolean delay, boolean jitter, String result) {
+        this.bandwidth = bandwidth;
+        if(delay) {
+            String[] splitted = result.split("/");
+            this.delay = splitted[1] + " ms";
+            if(jitter) {
+                this.jitter = splitted[3];
+            }
         }
-        if(delay != null) {
-            this.delay = delay;
-        }
-        if(jitter != null) {
-            this.jitter = jitter;
+        else if(jitter) {
+            String[] splitted = result.split("/");
+            this.jitter = splitted[3];
         }
     }
 
@@ -64,7 +67,7 @@ public class ResultsFragment extends Fragment {
             jit.setVisibility(View.GONE);
         }
         else {
-            TextView jitRes = (TextView) jit.findViewById(R.id.jitter_layout);
+            TextView jitRes = (TextView) jit.findViewById(R.id.jitter_result);
             jitRes.setText(jitter);
         }
 

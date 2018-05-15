@@ -1,5 +1,6 @@
 package com.qosi.qosispeed;
 
+import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
 import android.support.design.widget.NavigationView;
@@ -14,6 +15,12 @@ import android.support.v7.widget.Toolbar;
 import android.view.Menu;
 import android.view.MenuItem;
 
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
 
 
 public class MainActivity extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener {
@@ -51,9 +58,22 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         hf.setSettings(sf);
         hf.setActionBar(actionBar);
 
-        fm.beginTransaction().add(R.id.content_frame, hf).addToBackStack(null).commit();
+        fm.beginTransaction().replace(R.id.content_frame, hf).commit();
 
-
+        // Create settings file
+        File file = new File(getApplicationContext().getFilesDir(), "settings.json");
+        if(!file.exists()) {
+            JSONObject st = new JSONObject();
+            try {
+                st.accumulate(getString(R.string.bandwidth), true);
+                st.accumulate(getString(R.string.delay), true);
+                st.accumulate(getString(R.string.jitter), true);
+                FileOutputStream out = openFileOutput("settings.json", Context.MODE_PRIVATE);
+                out.write(st.toString().getBytes());
+            } catch (IOException | JSONException je) {
+                je.printStackTrace();
+            }
+        }
     }
 
     @Override
@@ -69,7 +89,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         if (drawer.isDrawerOpen(GravityCompat.START)) {
             drawer.closeDrawer(GravityCompat.START);
         }
-        else if(recent != null && !(recent instanceof HomeFragment || recent instanceof SettingsFragment)) {
+        else if(recent != null && recent instanceof ResultsFragment) {
             fm.beginTransaction().replace(R.id.content_frame, hf).commit();
             getSupportActionBar().setDisplayHomeAsUpEnabled(false);
             actionBarToggle.setDrawerIndicatorEnabled(true);
