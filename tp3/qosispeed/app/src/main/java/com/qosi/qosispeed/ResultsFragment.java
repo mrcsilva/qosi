@@ -37,7 +37,8 @@ public class ResultsFragment extends Fragment {
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         myView = inflater.inflate(R.layout.results_layout, container, false);
 
-        LinearLayout band = myView.findViewById(R.id.bandwidth_layout);
+        LinearLayout down = myView.findViewById(R.id.download_layout);
+        LinearLayout up = myView.findViewById(R.id.upload_layout);
         LinearLayout del = myView.findViewById(R.id.delay_layout);
         LinearLayout jit = myView.findViewById(R.id.jitter_layout);
 
@@ -45,12 +46,16 @@ public class ResultsFragment extends Fragment {
         View del_jit = myView.findViewById(R.id.delay_jit_div);
 
         if(bandwidth.equals("")) {
-            band.setVisibility(View.GONE);
+            down.setVisibility(View.GONE);
+            up.setVisibility(View.GONE);
             band_del.setVisibility(View.GONE);
         }
         else {
-            TextView bandRes = (TextView) band.findViewById(R.id.bandwidth_result);
-            bandRes.setText(bandwidth);
+            TextView downRes = (TextView) down.findViewById(R.id.download_result);
+            TextView upRes = (TextView) up.findViewById(R.id.upload_result);
+            String[] res = bandwidth.split(";");
+            downRes.setText(res[0]);
+            upRes.setText(res[1]);
         }
         if(delay.equals("")) {
             del.setVisibility(View.GONE);

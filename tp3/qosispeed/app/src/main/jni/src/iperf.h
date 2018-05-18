@@ -1,5 +1,5 @@
 /*
- * iperf, Copyright (c) 2014, 2015, 2016, The Regents of the University of
+ * iperf, Copyright (c) 2014, 2015, 2016, 2017, The Regents of the University of
  * California, through Lawrence Berkeley National Laboratory (subject
  * to receipt of any required approvals from the U.S. Dept. of
  * Energy).  All rights reserved.
@@ -36,12 +36,27 @@
 #endif
 #include <sys/select.h>
 #include <sys/socket.h>
+#ifndef _GNU_SOURCE
+# define _GNU_SOURCE
+#endif
 #include <netinet/tcp.h>
 
 #if defined(HAVE_CPUSET_SETAFFINITY)
 #include <sys/param.h>
 #include <sys/cpuset.h>
 #endif /* HAVE_CPUSET_SETAFFINITY */
+
+#if defined(HAVE_INTTYPES_H)
+# include <inttypes.h>
+#else
+# ifndef PRIu64
+#  if sizeof(long) == 8
+#   define PRIu64		"lu"
+#  else
+#   define PRIu64		"llu"
+#  endif
+# endif
+#endif
 
 #include "timer.h"
 #include "queue.h"
@@ -79,6 +94,8 @@ struct iperf_interval_results
     TAILQ_ENTRY(iperf_interval_results) irlistentries;
     void     *custom_data;
     int rtt;
+    int rttvar;
+    int pmtu;
 };
 
 struct iperf_stream_result
@@ -100,6 +117,8 @@ struct iperf_stream_result
     struct timeval start_time;
     struct timeval end_time;
     struct timeval start_time_fixed;
+    double sender_time;
+    double receiver_time;
     TAILQ_HEAD(irlisthead, iperf_interval_results) interval_results;
     void     *data;
 };
@@ -110,7 +129,9 @@ struct iperf_settings
     int       domain;               /* AF_INET or AF_INET6 */
     int       socket_bufsize;       /* window size for TCP */
     int       blksize;              /* size of read/writes (-l) */
-    uint64_t  rate;                 /* target data rate */
+    uint64_t  rate;                 /* target data rate for application pacing*/
+    uint64_t  fqrate;               /* target data rate for FQ pacing*/
+    int	      pacing_timer;	    /* pacing timer in microseconds */
     int       burst;                /* packets per burst */
     int       mss;                  /* for TCP MSS */
     int       ttl;                  /* IP TTL option */
@@ -120,6 +141,8 @@ struct iperf_settings
     iperf_size_t blocks;            /* number of blocks (packets) to send */
     char      unit_format;          /* -f */
     int       num_ostreams;         /* SCTP initmsg settings */
+    char      *authtoken;           /* Authentication token */
+    int	      connect_timeout;	    /* socket connection timeout, in ms */
 };
 
 struct iperf_test;
@@ -144,12 +167,14 @@ struct iperf_stream
     int       buffer_fd;	/* data to send, file descriptor */
     char      *buffer;		/* data to send, mmapped */
     int       diskfile_fd;	/* file to send, file descriptor */
+    int	      diskfile_left;	/* remaining file data on disk */
 
     /*
      * for udp measurements - This can be a structure outside stream, and
      * stream can have a pointer to this
      */
     int       packet_count;
+    int	      peer_packet_count;
     int       omitted_packet_count;
     double    jitter;
     double    prev_transit;
@@ -220,6 +245,8 @@ struct iperf_test
 #endif /* HAVE_CPUSET_SETAFFINITY */
     char     *title;				/* -T option */
     char     *congestion;			/* -C option */
+    char     *congestion_used;			/* what was actually used */
+    char     *remote_congestion_used;		/* what the other side used */
     char     *pidfile;				/* -P option */
 
     char     *logfile;				/* --logfile option */
@@ -228,6 +255,10 @@ struct iperf_test
     int       ctrl_sck;
     int       listener;
     int       prot_listener;
+
+    int	      ctrl_sck_mss;			/* MSS for the control channel */
+    char     *server_rsa_private_key;
+    char     *server_authorized_users;
 
     /* boolean variables for Options */
     int       daemon;                           /* -D option */
@@ -240,7 +271,7 @@ struct iperf_test
     int       debug;				/* -d option - enable debug */
     int	      get_server_output;		/* --get-server-output */
     int	      udp_counters_64bit;		/* --use-64-bit-udp-counters */
-    int       no_fq_socket_pacing;	  /* --no-fq-socket-pacing */
+    int       forceflush; /* --forceflush - flushing output at every interval */
     int	      multisend;
 
     char     *json_output_string; /* rendered JSON output if json_output is set */
@@ -308,10 +339,14 @@ struct iperf_test
 #define SEC_TO_NS 1000000000LL	/* too big for enum/const on some platforms */
 #define MAX_RESULT_STRING 4096
 
+#define UDP_BUFFER_EXTRA 1024
+
 /* constants for command line arg sanity checks */
 #define MB (1024 * 1024)
 #define MAX_TCP_BUFFER (512 * MB)
 #define MAX_BLOCKSIZE MB
+/* Minimum size UDP send is the size of two 32-bit ints followed by a 64-bit int */
+#define MIN_UDP_BLOCKSIZE (4 + 4 + 8)
 /* Maximum size UDP send is (64K - 1) - IP and UDP header sizes */
 #define MAX_UDP_BLOCKSIZE (65535 - 8 - 20)
 #define MIN_INTERVAL 0.1

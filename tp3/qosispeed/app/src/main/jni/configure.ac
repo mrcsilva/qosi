@@ -1,4 +1,4 @@
-# iperf, Copyright (c) 2014, 2015, 2016, The Regents of the University of
+# iperf, Copyright (c) 2014-2018, The Regents of the University of
 # California, through Lawrence Berkeley National Laboratory (subject
 # to receipt of any required approvals from the U.S. Dept. of
 # Energy).  All rights reserved.
@@ -24,7 +24,8 @@
 # file for complete information.
 
 # Initialize the autoconf system for the specified tool, version and mailing list
-AC_INIT(iperf, 3.1.3, https://github.com/esnet/iperf, iperf, http://software.es.net/iperf/)
+AC_INIT(iperf, 3.5, https://github.com/esnet/iperf, iperf, http://software.es.net/iperf/)
+m4_include([config/ax_check_openssl.m4])
 AC_LANG(C)
 
 # Specify where the auxiliary files created by configure should go. The config
@@ -63,18 +64,6 @@ echo "floor()"
 exit 1
 ])
 
-# Solaris puts nanosleep in -lrt
-AC_SEARCH_LIBS(nanosleep, [rt], [], [
-echo "nanosleep() required for timing operations."
-exit 1
-])
-
-# Solaris puts hstrerror in -lresolv
-AC_SEARCH_LIBS(hstrerror, [resolv], [], [
-echo "nanosleep() required for timing operations."
-exit 1
-])
-
 # On illumos we need -lsocket
 AC_SEARCH_LIBS(socket, [socket], [], [
 echo "socket()"
@@ -90,6 +79,9 @@ exit 1
 # Checks for typedefs, structures, and compiler characteristics.
 AC_C_CONST
 
+# Check for poll.h (it's in POSIX so everyone should have it?)
+AC_CHECK_HEADERS([poll.h])
+
 # Check for SCTP support
 AC_CHECK_HEADERS([sys/socket.h])
 AC_CHECK_HEADERS([netinet/sctp.h],
@@ -102,6 +94,29 @@ AC_CHECK_HEADERS([netinet/sctp.h],
 #include <sys/socket.h>
 #endif
 ])
+
+AC_CHECK_HEADER([endian.h],
+		AC_DEFINE([HAVE_ENDIAN_H], [1], [Define to 1 if you have the <endian.h> header file.]),
+		AC_CHECK_HEADER([sys/endian.h],
+				AC_DEFINE([HAVE_SYS_ENDIAN_H], [1], [Define to 1 if you have the <sys/endian.h> header file.]),
+				AC_MSG_WARN([Couldn't find endian.h or sys/endian.h files: doing compile-time tests.])
+				)
+		)
+
+if test "x$with_openssl" = "xno"; then
+    AC_MSG_WARN( [Building without OpenSSL; disabling iperf_auth functionality.] )
+else
+    # Check for OPENSSL support
+    AX_CHECK_OPENSSL(
+        [ AC_DEFINE([HAVE_SSL], [1], [OpenSSL Is Available]) ],
+	[ if test "x$with_openssl" != "x"; then
+	  AC_MSG_FAILURE([--with-openssl was given, but test for OpenSSL failed])
+	  fi ]
+    )
+    LDFLAGS="$LDFLAGS $OPENSSL_LDFLAGS"
+    LIBS="$OPENSSL_LIBS $LIBS"
+    CPPFLAGS="$OPENSSL_INCLUDES $CPPFLAGS"
+fi
 
 # Check for TCP_CONGESTION sockopt (believed to be Linux and FreeBSD only)
 AC_CACHE_CHECK([TCP_CONGESTION socket option],
@@ -138,14 +153,21 @@ fi
 # FreeBSD uses cpuset_setaffinity while Linux uses sched_setaffinity.
 # Define HAVE_CPU_AFFINITY to indicate the CPU affinity setting as a
 # generic concept is available.
-AC_CHECK_FUNCS([cpuset_setaffinity sched_setaffinity],
+AC_CHECK_FUNCS([cpuset_setaffinity sched_setaffinity SetProcessAffinityMask],
 	       AC_DEFINE([HAVE_CPU_AFFINITY], [1], 
 	 	         [Have CPU affinity support.]))
+
+# Check for daemon().  Most systems have this but a few (IRIX) don't.
+AC_CHECK_FUNCS([daemon])
 
 # Check for sendfile support.  FreeBSD, Linux, and MacOS all support
 # this system call, but they're all different in terms of what headers
 # it needs and what arguments it expects.
 AC_CHECK_FUNCS([sendfile])
+
+# Check for getline support, used as a part of authenticated
+# connections.
+AC_CHECK_FUNCS([getline])
 
 # Check for packet pacing socket option (Linux only for now).
 AC_CACHE_CHECK([SO_MAX_PACING_RATE socket option],

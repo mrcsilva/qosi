@@ -10,7 +10,7 @@
         android:layout_height="match_parent">
 
         <LinearLayout
-            android:id="@+id/bandwidth_layout"
+            android:id="@+id/download_layout"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_marginEnd="16dp"
@@ -28,12 +28,12 @@
                 android:layout_height="match_parent"
                 android:layout_weight="1"
                 android:minWidth="200dp"
-                android:text="@string/bandwidth"
+                android:text="@string/download"
                 android:textColor="@android:color/black"
                 android:textSize="24sp" />
 
             <TextView
-                android:id="@+id/bandwidth_result"
+                android:id="@+id/download_result"
                 android:layout_width="wrap_content"
                 android:layout_height="match_parent"
                 android:layout_weight="0"
@@ -43,6 +43,38 @@
 
         </LinearLayout>
 
+        <LinearLayout
+            android:id="@+id/upload_layout"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="16dp"
+            android:layout_marginStart="8dp"
+            android:layout_marginTop="8dp"
+            android:orientation="horizontal"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/download_layout">
+
+            <TextView
+                android:id="@+id/textView3"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:minWidth="200dp"
+                android:text="@string/upload"
+                android:textColor="@android:color/black"
+                android:textSize="24sp" />
+
+            <TextView
+                android:id="@+id/upload_result"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:layout_weight="0"
+                android:text="@string/dash"
+                android:textColor="@android:color/black"
+                android:textSize="24sp" />
+        </LinearLayout>
+
         <View
             android:id="@+id/band_delay_div"
             android:layout_width="0dp"
@@ -50,8 +82,9 @@
             android:layout_marginTop="16dp"
             android:background="#bbbbbb"
             app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintHorizontal_bias="0.0"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@+id/bandwidth_layout" />
+            app:layout_constraintTop_toBottomOf="@+id/upload_layout" />
 
         <LinearLayout
             android:id="@+id/delay_layout"
@@ -62,6 +95,7 @@
             android:layout_marginTop="16dp"
             android:orientation="horizontal"
             app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintHorizontal_bias="0.0"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@+id/band_delay_div">
 
@@ -92,6 +126,7 @@
             android:background="#bbbbbb"
             android:backgroundTint="#bbbbbb"
             app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintHorizontal_bias="0.0"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@+id/delay_layout" />
 

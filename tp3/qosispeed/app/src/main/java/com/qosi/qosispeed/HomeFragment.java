@@ -29,6 +29,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
+import java.text.DecimalFormat;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -131,7 +132,7 @@ public class HomeFragment extends Fragment {
                 in.close();
                 out.close();
                 //After the copy operation is finished, we give execute permissions to the "iperf" executable using shell commands.
-                Process processChmod = Runtime.getRuntime().exec("/system/bin/chmod 755 " + getContext().getFilesDir().getAbsolutePath() + "/iperf3");
+                Process processChmod = Runtime.getRuntime().exec("/system/bin/chmod 777 " + getContext().getFilesDir().getAbsolutePath() + "/iperf3");
                 // Executes the command and waits untill it finishes.
                 processChmod.waitFor();
             } catch (IOException e) {
@@ -308,7 +309,8 @@ class IperfTask extends Thread {
 
     private Process process = null;
 
-    private StringBuilder sb = new StringBuilder();
+    private StringBuilder download = new StringBuilder();
+    private StringBuilder upload = new StringBuilder();
 
     private String res = "";
 
@@ -323,43 +325,111 @@ class IperfTask extends Thread {
         return res;
     }
 
+    private void parseResult() {
+        try {
+            JSONObject down = new JSONObject(download.toString());
+            JSONObject up = new JSONObject(upload.toString());
+
+            Double dbps = (Double) down.getJSONObject("end").getJSONObject("sum_received").get("bits_per_second");
+            Double ubps = (Double) up.getJSONObject("end").getJSONObject("sum_sent").get("bits_per_second");
+            int dcount = 0;
+            int ucount = 0;
+
+            while(dbps > 1000) {
+                dbps /= 1024;
+                dcount ++;
+            }
+            while(ubps > 1000) {
+                ubps /= 1024;
+                ucount ++;
+            }
+            switch(dcount) {
+                case 0:
+                    res += new DecimalFormat("##.##").format(dbps) + " bps;";
+                    break;
+                case 1:
+                    res += new DecimalFormat("##.##").format(dbps) + " Kbps;";
+                    break;
+                case 2:
+                    res += new DecimalFormat("##.##").format(dbps) + " Mbps;";
+                    break;
+                case 3:
+                    res += new DecimalFormat("##.##").format(dbps) + " Gbps;";
+                    break;
+            }
+            switch(ucount) {
+                case 0:
+                    res += new DecimalFormat("##.##").format(ubps) + " bps";
+                    break;
+                case 1:
+                    res += new DecimalFormat("##.##").format(ubps) + " Kbps";
+                    break;
+                case 2:
+                    res += new DecimalFormat("##.##").format(ubps) + " Mbps";
+                    break;
+                case 3:
+                    res += new DecimalFormat("##.##").format(ubps) + " Gbps";
+                    break;
+            }
+        }
+        catch (JSONException e) {
+            e.printStackTrace();
+        }
+    }
+
     //This function is used to implement the main task that runs on the background.
     @Override
     public void run() {
         // iperf command syntax check using a Regular expression to protect the system from user exploitation.
-        String str = path + "/iperf3 -R -c ping.online.net -p 5206";
+        String str = path + "/iperf3 -c ping.online.net -p 5206 -J";
+        String str2 = path + "/iperf3 -R -c ping.online.net -p 5206 -J";
         synchronized (this) {
             try {
                 //The user input for the parameters is parsed into a string list as required from the ProcessBuilder Class.
-                process = Runtime.getRuntime().exec(str);
+                process = Runtime.getRuntime().exec(str2);
+                process.waitFor();
                 //A buffered output of the stdout is being initialized so the iperf output could be displayed on the screen.
                 BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
-                int read;
-                //The output text is accumulated into a string buffer and published to the GUI
-                char[] buffer = new char[4096];
-                StringBuffer output = new StringBuffer();
-                Log.i("iperf", "Le resultado!");
-                while ((read = reader.read(buffer)) > 0) {
-                    output.append(buffer, 0, read);
+                String line;
+                Log.i("iperf", "Le resultado download!");
+                while ((line = reader.readLine()) != null) {
                     //This is used to pass the output to the thread running the GUI, since this is separate thread.
-                    if(output.toString().contains("error")) {
-                        sb.append(output.toString());
-                        Log.i("iperf", output.toString());
+                    if(line.contains("error")) {
+                        download.append(line);
+                        Log.i("iperf out", line);
                         break;
                     }
                     else {
-                        sb.append(output.toString());
-                        Log.i("iperf", output.toString());
+                        download.append(line);
+                        Log.i("iperf out", line);
                     }
-                    output.delete(0, output.length());
                 }
+
+                process = Runtime.getRuntime().exec(str);
+                process.waitFor();
+                //A buffered output of the stdout is being initialized so the iperf output could be displayed on the screen.
+                reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+                Log.i("iperf", "Le resultado upload!");
+                while ((line = reader.readLine()) != null) {
+                    //This is used to pass the output to the thread running the GUI, since this is separate thread.
+                    if(line.contains("error")) {
+                        upload.append(line);
+                        Log.i("iperf out", line);
+                        break;
+                    }
+                    else {
+                        upload.append(line);
+                        Log.i("iperf out", line);
+                    }
+                }
+
                 Log.i("iperf", "Fechou output!");
                 reader.close();
                 process.destroy();
-                res = sb.toString();
+                parseResult();
                 notify();
             }
-            catch (IOException e) {
+            catch (IOException | InterruptedException e) {
                 res = "\nError occurred while accessing system resources, please reboot and try again.";
                 e.printStackTrace();
             }
