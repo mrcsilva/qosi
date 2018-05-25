@@ -56,7 +56,6 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         fm = getSupportFragmentManager();
 
         hf.setSettings(sf);
-        hf.setActionBar(actionBar);
 
         fm.beginTransaction().replace(R.id.content_frame, hf).commit();
 
@@ -76,11 +75,6 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         }
     }
 
-    @Override
-    public boolean onSupportNavigateUp(){
-        finish();
-        return true;
-    }
 
     @Override
     public void onBackPressed() {
@@ -91,7 +85,6 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         }
         else if(recent != null && recent instanceof ResultsFragment) {
             fm.beginTransaction().replace(R.id.content_frame, hf).commit();
-            getSupportActionBar().setDisplayHomeAsUpEnabled(false);
             actionBarToggle.setDrawerIndicatorEnabled(true);
         }
         else {
@@ -139,7 +132,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         }
         else if(id == R.id.nav_home) {
             fm.beginTransaction().replace(R.id.content_frame, hf).commit();
-            setTitle("QoSI Speedtest");
+            setTitle("QoSI Measurment");
             hf.doOptions();
         }
 

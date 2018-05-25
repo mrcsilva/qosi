@@ -1,12 +1,12 @@
 package com.qosi.qosispeed;
 
+import android.content.Context;
 import android.content.res.ColorStateList;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
-import android.support.v7.app.ActionBar;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -43,8 +43,8 @@ public class HomeFragment extends Fragment {
     private String text = "";
     private FragmentManager fm = null;
     private ProgressBar p;
-    private ActionBar actionBar = null;
     private IperfTask iperfTask = null;
+    private boolean firstBoot = true;
 
 
     public void setSettings(SettingsFragment sf) {
@@ -55,9 +55,6 @@ public class HomeFragment extends Fragment {
         return this.sf;
     }
 
-    public void setActionBar(ActionBar actionBar) {
-        this.actionBar = actionBar;
-    }
 
     public void doOptions() {
         View settingsView = sf.getView();
@@ -185,45 +182,62 @@ public class HomeFragment extends Fragment {
         }
 
         if(st != null) {
+            final Boolean band2 = band;
+            final Boolean ping2 = ping;
+            final Boolean jitter2 = jitter;
 
             p.setVisibility(View.VISIBLE);
 
-            PingThread pt = new PingThread();
-
             iperfTask = new IperfTask(getContext().getFilesDir().getAbsolutePath());
 
-            ResultsFragment results = new ResultsFragment();
+            Thread t = new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    PingThread pt = new PingThread();
+                    ResultsFragment results = new ResultsFragment();
+                    if (band2) {
+                        initIperf(results);
 
-            if (band) {
-                initIperf(results);
-
-                synchronized (iperfTask) {
-                    try {
-                        iperfTask.wait();
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
+                        synchronized (iperfTask) {
+                            try {
+                                iperfTask.wait();
+                            } catch (InterruptedException e) {
+                                e.printStackTrace();
+                            }
+                        }
                     }
-                }
-            }
 
-            if (ping || jitter) {
-                pt.start();
+                    if (ping2 || jitter2) {
 
-                synchronized (pt) {
-                    try {
-                        pt.wait();
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
+                        pt.start();
+
+                        synchronized (pt) {
+                            try {
+                                pt.wait();
+                            } catch (InterruptedException e) {
+                                e.printStackTrace();
+                            }
+                        }
                     }
+
+
+                    Log.i("mario", "Saiu!");
+
+                    getActivity().runOnUiThread(new Runnable() {
+                        @Override
+                        public void run()
+                        {
+                            p.setVisibility(View.INVISIBLE);
+                        }
+                    });
+
+                    results.setResults(iperfTask.getResult(), ping2, jitter2, pt.getResult());
+                    getFragmentManager().beginTransaction().replace(R.id.content_frame, results).commit();
                 }
-            }
+            });
 
-            Log.i("mario", "Saiu!");
-            p.setVisibility(View.INVISIBLE);
+            t.start();
 
-            results.setResults(iperfTask.getResult(), ping, jitter, pt.getResult());
-            actionBar.setDisplayHomeAsUpEnabled(true);
-            getFragmentManager().beginTransaction().replace(R.id.content_frame, results).commit();
         }
     }
 
@@ -248,7 +262,73 @@ public class HomeFragment extends Fragment {
             }
         });
 
-        doOptions();
+        if(firstBoot) {
+            JSONObject st = null;
+            String options = "";
+            boolean one = false;
+            try {
+                File f = new File(getContext().getFilesDir(), "settings.json");
+                if(f.length() != 0) {
+                    BufferedReader in = new BufferedReader(new FileReader(f));
+                    String line;
+                    StringBuilder sb = new StringBuilder();
+                    while ((line = in.readLine()) != null) {
+                        sb.append(line);
+                    }
+                    if (sb.toString().length() > 10) {
+                        st = new JSONObject(sb.toString());
+                    }
+                    if (st != null) {
+                        Log.i("mario", st.toString());
+                        if ((Boolean) st.get("Bandwidth")) {
+                            options += "- Bandwidth\n";
+                            one = true;
+                        } else {
+                            one = false;
+                        }
+                        if ((Boolean) st.get("Delay")) {
+                            options += "- Delay (Ping)\n";
+                            one = true;
+                        } else if (!one) {
+                            one = false;
+                        }
+                        if ((Boolean) st.get("Jitter")) {
+                            options += "- Jitter\n";
+                            one = true;
+                        } else if (!one) {
+                            one = false;
+                        }
+
+                        if (!one) {
+                            tv.setText("Go to Settings and choose what to test!");
+                        } else {
+                            tv.setText("Tests to perform:\n" + options);
+                        }
+                    } else {
+                        tv.setText("Go to Settings and choose what to test!");
+                    }
+                }
+                else {
+                    options += "- Bandwidth\n";
+                    options += "- Delay (Ping)\n";
+                    options += "- Jitter\n";
+                    tv.setText("Tests to perform:\n" + options);
+
+                    st = new JSONObject();
+                    st.accumulate(getString(R.string.bandwidth), true);
+                    st.accumulate(getString(R.string.delay), true);
+                    st.accumulate(getString(R.string.jitter), true);
+                    FileOutputStream out = getContext().openFileOutput("settings.json", Context.MODE_PRIVATE);
+                    out.write(st.toString().getBytes());
+                }
+            }
+            catch(IOException | JSONException io) {
+                io.printStackTrace();
+            }
+        }
+        else {
+            doOptions();
+        }
 
         return myView;
     }
